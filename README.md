@@ -22,6 +22,6 @@ A Telegram bot for downloading videos, reels, and photos from Instagram links, a
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/<your-username>/downloader.git
+   git clone https://github.com/SHIVAY-XD/downloader.git
    cd downloader
  
