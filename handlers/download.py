@@ -1,6 +1,5 @@
 import os
 import aiohttp
-import asyncio
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from utils.user_data import check_channel_membership
 
@@ -15,16 +14,14 @@ async def download_and_send_video(video_url: str, chat_id: int, user_id: int, co
         await context.bot.send_message(chat_id=chat_id, text="<b>Before sending the link, please join our channel first.</b>\n\n<i>After joining, send the link again.</i>", parse_mode='HTML', reply_markup=reply_markup)
         return
 
+    # Send processing message and store its ID
     downloading_message = await context.bot.send_message(chat_id=chat_id, text="Processing your request... Please wait.")
 
-    # Use run_in_executor for blocking download function
-    await download_video(video_url, chat_id, context)
+    # Create a task for the download
+    await download_video(video_url, chat_id, context, downloading_message)
 
-async def download_video(video_url, chat_id, context):
+async def download_video(video_url: str, chat_id: int, context, downloading_message):
     api_url = f'https://tele-social.vercel.app/down?url={video_url}'
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-    }
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -33,12 +30,8 @@ async def download_video(video_url, chat_id, context):
                 content = await response.json()
 
         platform = content.get('platform')
-        video_link = None
-        title = None
-
-        if platform in ["YouTube", "Instagram", "Facebook"]:
-            video_link = content['data'].get('video')
-            title = content['data'].get('title', f"{platform} Video")
+        video_link = content['data'].get('video')
+        title = content['data'].get('title', f"{platform} Video")
 
         if not video_link or not video_link.startswith("http"):
             await context.bot.send_message(chat_id=chat_id, text="Received an invalid video link.")
@@ -59,10 +52,13 @@ async def download_video(video_url, chat_id, context):
         with open(temp_file_path, "rb") as f:
             await context.bot.send_video(chat_id=chat_id, video=f, caption=f"{title}")
 
-        # Optionally delete the file after sending
+        # Clean up the downloaded file
         os.remove(temp_file_path)
 
     except Exception as e:
         await context.bot.send_message(chat_id=chat_id, text="Failed to download video. Please try again later.")
         print(f"Error: {e}")
+    finally:
+        # Delete the processing message
+        await context.bot.delete_message(chat_id=chat_id, message_id=downloading_message.message_id)
 
