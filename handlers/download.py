@@ -1,7 +1,9 @@
 import os
 import aiohttp
+import asyncio
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from utils.user_data import check_channel_membership
+from main import run_in_executor, executor  # Ensure you're importing the executor
 
 async def download_and_send_video(video_url: str, chat_id: int, user_id: int, context):
     if not await check_channel_membership(user_id, context):
@@ -19,11 +21,7 @@ async def download_and_send_video(video_url: str, chat_id: int, user_id: int, co
     # Use run_in_executor for blocking download function
     await run_in_executor(download_video, video_url, chat_id, context)
 
-async def run_in_executor(func, *args):
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(executor, func, *args)
-
-def download_video(video_url, chat_id, context):
+async def download_video(video_url, chat_id, context):
     api_url = f'https://tele-social.vercel.app/down?url={video_url}'
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
@@ -38,12 +36,10 @@ def download_video(video_url, chat_id, context):
         platform = content.get('platform')
         video_link = None
         title = None
-        image_url = None
 
         if platform in ["YouTube", "Instagram", "Facebook"]:
             video_link = content['data'].get('video')
             title = content['data'].get('title', f"{platform} Video")
-            image_url = content['data'].get('image')
 
         if not video_link or not video_link.startswith("http"):
             await context.bot.send_message(chat_id=chat_id, text="Received an invalid video link.")
@@ -62,7 +58,7 @@ def download_video(video_url, chat_id, context):
 
         # Send the video file to Telegram
         with open(temp_file_path, "rb") as f:
-            await context.bot.send_video(chat_id=chat_id, video=f, caption=f"{title}", reply_markup=reply_markup)
+            await context.bot.send_video(chat_id=chat_id, video=f, caption=f"{title}")
 
         # Optionally delete the file after sending
         os.remove(temp_file_path)
