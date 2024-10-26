@@ -1,4 +1,5 @@
 import json
+from telegram.ext import ContextTypes  # Add this import
 
 USER_DATA_FILE = "user_details.json"
 
@@ -20,4 +21,3 @@ async def check_channel_membership(user_id: int, context: ContextTypes.DEFAULT_T
     except Exception as e:
         print(f"Error checking channel membership: {e}")
         return False
-
