@@ -1,8 +1,8 @@
 from telegram.ext import ApplicationBuilder
-from handlers.start_handler import start
-from handlers.info_handler import info
-from handlers.download_handler import handle_message
-from handlers.broadcast_handler import broadcast
+from handlers.start import start
+from handlers.info import info
+from handlers.download import handle_message
+from handlers.broadcast import broadcast
 
 TELEGRAM_BOT_TOKEN = 'YOUR_BOT_TOKEN'
 
