@@ -4,7 +4,7 @@ from handlers.info import info
 from handlers.download import handle_message
 from handlers.broadcast import broadcast
 
-TELEGRAM_BOT_TOKEN = 'YOUR_BOT_TOKEN'
+TELEGRAM_BOT_TOKEN = '6996568724:AAFrjf88-0uUXJumDiuV6CbVuXCJvT-4KbY'
 
 def main():
     application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
