@@ -1,69 +1,29 @@
-import os
-import aiohttp
 import asyncio
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from utils.user_data import check_channel_membership
-from main import run_in_executor, executor  # Ensure you're importing the executor
+from concurrent.futures import ThreadPoolExecutor
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
+from handlers.start import start  # Importing directly
+from handlers.info import info  # Importing directly
+from handlers.download import download_and_send_video  # Importing directly
+from handlers.broadcast import broadcast  # Importing directly
 
-async def download_and_send_video(video_url: str, chat_id: int, user_id: int, context):
-    if not await check_channel_membership(user_id, context):
-        keyboard = [
-            [
-                InlineKeyboardButton("Join Channel", url="https://t.me/Itsteachteam"),
-            ]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.send_message(chat_id=chat_id, text="<b>Before sending the link, please join our channel first.</b>\n\n<i>After joining, send the link again.</i>", parse_mode='HTML', reply_markup=reply_markup)
-        return
+TELEGRAM_BOT_TOKEN = '6996568724:AAFrjf88-0uUXJumDiuV6CbVuXCJvT-4KbY'
 
-    downloading_message = await context.bot.send_message(chat_id=chat_id, text="Processing your request... Please wait.")
+# Create a ThreadPoolExecutor
+executor = ThreadPoolExecutor(max_workers=4)  # Adjust as needed
 
-    # Use run_in_executor for blocking download function
-    await run_in_executor(download_video, video_url, chat_id, context)
+async def run_in_executor(func, *args):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, func, *args)
 
-async def download_video(video_url, chat_id, context):
-    api_url = f'https://tele-social.vercel.app/down?url={video_url}'
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-    }
+def main():
+    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(api_url) as response:
-                response.raise_for_status()
-                content = await response.json()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("info", info))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download_and_send_video))  # Directly call the download handler
+    application.add_handler(CommandHandler("broadcast", broadcast))
 
-        platform = content.get('platform')
-        video_link = None
-        title = None
+    application.run_polling()
 
-        if platform in ["YouTube", "Instagram", "Facebook"]:
-            video_link = content['data'].get('video')
-            title = content['data'].get('title', f"{platform} Video")
-
-        if not video_link or not video_link.startswith("http"):
-            await context.bot.send_message(chat_id=chat_id, text="Received an invalid video link.")
-            return
-
-        # Download the video
-        async with aiohttp.ClientSession() as session:
-            async with session.get(video_link) as response:
-                response.raise_for_status()
-                video_data = await response.read()
-
-        # Save the video to a temporary file
-        temp_file_path = "downloaded_video.mp4"
-        with open(temp_file_path, "wb") as f:
-            f.write(video_data)
-
-        # Send the video file to Telegram
-        with open(temp_file_path, "rb") as f:
-            await context.bot.send_video(chat_id=chat_id, video=f, caption=f"{title}")
-
-        # Optionally delete the file after sending
-        os.remove(temp_file_path)
-
-    except Exception as e:
-        await context.bot.send_message(chat_id=chat_id, text="Failed to download video. Please try again later.")
-        print(f"Error: {e}")
-
+if __name__ == '__main__':
+    main()
