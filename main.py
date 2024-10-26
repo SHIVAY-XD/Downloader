@@ -27,7 +27,8 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_download))
     application.add_handler(CommandHandler("broadcast", broadcast))
 
+    # Using run_polling with the async context
     application.run_polling()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
