@@ -1,4 +1,4 @@
-from telegram.ext import ApplicationBuilder
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters  # Add CommandHandler and MessageHandler
 from handlers.start import start
 from handlers.info import info
 from handlers.download import handle_message
